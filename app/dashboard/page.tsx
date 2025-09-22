@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getNotesByUserId, createNote, deleteNote } from "@/app/lib/notes-actions";
+import NotesGrid from "@/components/NotesGrid";
 
 async function handleCreateNote(formData: FormData) {
   "use server";
@@ -70,6 +71,8 @@ export default async function Dashboard() {
           ))}
         </div>
       )}
+      <NotesGrid notes={notes} />
     </div>
+
   )
 }

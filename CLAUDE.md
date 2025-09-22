@@ -48,3 +48,4 @@ This is a Next.js 15 notes application with authentication, built using:
 - `db/index.ts` - Database connection
 - `drizzle.config.ts` - Drizzle ORM configuration
 - Database schemas in `db/schema/`
+- We are using gridstack as the library to show the notes
