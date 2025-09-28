@@ -19,6 +19,11 @@ export async function getNotesByUserId(userId: string) {
   return await db.select().from(note).where(eq(note.userId, userId));
 }
 
+export async function updateNote(noteId: number, content: string) {
+  await db.update(note).set({ content }).where(eq(note.id, noteId));
+  revalidatePath("/dashboard");
+}
+
 export async function deleteNote(noteId: number) {
   await db.delete(note).where(eq(note.id, noteId));
   revalidatePath("/dashboard");
