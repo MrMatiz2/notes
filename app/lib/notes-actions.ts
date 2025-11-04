@@ -24,6 +24,11 @@ export async function updateNote(noteId: number, content: string) {
   revalidatePath("/dashboard");
 }
 
+export async function updateNotePosition(noteId: number, x: number, y: number, w: number, h: number) {
+  await db.update(note).set({ gridX: x, gridY: y, gridW: w, gridH: h }).where(eq(note.id, noteId));
+  revalidatePath("/dashboard");
+}
+
 export async function deleteNote(noteId: number) {
   await db.delete(note).where(eq(note.id, noteId));
   revalidatePath("/dashboard");

@@ -58,21 +58,8 @@ export default async function Dashboard() {
       {notes.length === 0 ? (
         <p>No notes yet. Create your first note!</p>
       ) : (
-        <div>
-          {notes.map((note) => (
-            <div key={note.id} style={{ border: "1px solid #ccc", margin: "10px 0", padding: "10px" }}>
-              <h3>{note.title}</h3>
-              <p>{note.content}</p>
-              <small>Created: {note.created_at}</small>
-              <form action={handleDeleteNote.bind(null, note.id)} style={{ display: "inline", marginLeft: "10px" }}>
-                <button type="submit">Delete</button>
-              </form>
-            </div>
-          ))}
-        </div>
+        <NotesGrid notes={notes} onDelete={handleDeleteNote} />
       )}
-      <NotesGrid notes={notes} />
     </div>
-
   )
 }

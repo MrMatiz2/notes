@@ -1,165 +1,155 @@
-'use client';
+"use client";
+
 import { useEffect, useRef, useState } from "react";
-import { GridStack } from 'gridstack';
-import MDEditor from '@uiw/react-md-editor';
-import { createRoot } from 'react-dom/client';
-import { updateNote as updateNoteAction } from '@/app/lib/notes-actions';
+import { GridStack } from "gridstack";
+import "gridstack/dist/gridstack.min.css";
+import { updateNotePosition } from "@/app/lib/notes-actions";
 
 interface Note {
-    id: number;
-    title: string | null;
-    content: string | null;
-    userId: string | null;
-    updated_at: string | null;
-    created_at: string | null;
+  id: number;
+  title: string | null;
+  content: string | null;
+  userId: string | null;
+  gridX: number | null;
+  gridY: number | null;
+  gridW: number | null;
+  gridH: number | null;
+  updated_at: string | null;
+  created_at: string | null;
 }
 
-export default function NotesGrid({ notes }: { notes: Note[] }) {
-    const gridRef = useRef<GridStack | null>(null);
-    const [editableNotes, setEditableNotes] = useState<Note[]>(notes);
-    const [tempValues, setTempValues] = useState<Record<number, string>>({});
-    const editorRootsRef = useRef<Record<number, any>>({});
-    const blurTimersRef = useRef<Record<number, NodeJS.Timeout>>({});
+interface NotesGridProps {
+  notes: Note[];
+  onDelete: (noteId: number) => void;
+}
 
-    // Update local state when props change
-    useEffect(() => {
-        setEditableNotes(notes);
-        setTempValues({});
-    }, [notes]);
+export default function NotesGrid({ notes, onDelete }: NotesGridProps) {
+  const gridRef = useRef<HTMLDivElement>(null);
+  const gridInstanceRef = useRef<GridStack | null>(null);
+  const [isClient, setIsClient] = useState(false);
+  const prevNotesRef = useRef<Note[]>([]);
 
-    const handleContentChange = (noteId: number, newContent: string) => {
-        setTempValues(prev => ({
-            ...prev,
-            [noteId]: newContent
-        }));
-    };
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
-    const handleContentBlur = async (noteId: number) => {
-        blurTimersRef.current[noteId] = setTimeout(async () => {
-            // Get the current temp value
-            const newContent = tempValues[noteId];
-            if (newContent !== undefined) {
-                // Update the actual note state
-                setEditableNotes(prev =>
-                    prev.map(note =>
-                        note.id === noteId
-                            ? { ...note, content: newContent }
-                            : note
-                    )
-                );
+  // Initialize GridStack once
+  useEffect(() => {
+    if (!isClient || !gridRef.current) return;
 
-                // Clear temp value
-                setTempValues(prev => {
-                    const newTemp = { ...prev };
-                    delete newTemp[noteId];
-                    return newTemp;
-                });
+    const grid = GridStack.init({
+      cellHeight: 100,
+      margin: 10,
+      float: true,
+      acceptWidgets: true,
+      resizable: {
+        handles: "se, sw"
+      },
+      draggable: {
+        handle: ".note-header"
+      }
+    }, gridRef.current);
 
-                // Update in database (moved outside of setState)
-                try {
-                    await updateNoteAction(noteId, newContent);
-                } catch (error) {
-                    console.error('Failed to update note:', error);
-                }
-            }
-        }, 200);
-    };
+    gridInstanceRef.current = grid;
 
-    const handleContentFocus = (noteId: number) => {
-        if (blurTimersRef.current[noteId]) {
-            clearTimeout(blurTimersRef.current[noteId]);
-            delete blurTimersRef.current[noteId];
+    // Handle position change
+    grid.on("change", (event, items) => {
+      if (!items) return;
+
+      items.forEach((item) => {
+        const noteId = parseInt(item.el?.getAttribute("data-note-id") || "0");
+        if (noteId && item.x !== undefined && item.y !== undefined && item.w !== undefined && item.h !== undefined) {
+          //updateNotePosition(noteId, item.x, item.y, item.w, item.h);
         }
+      });
+    });
+
+    return () => {
+      if (gridInstanceRef.current) {
+        gridInstanceRef.current.destroy(false);
+      }
     };
+  }, [isClient]);
 
-    useEffect(() => {
-        if (!gridRef.current) {
-            gridRef.current = GridStack.init();
-        }
+  // Update grid items when notes change
+  useEffect(() => {
+    if (!gridInstanceRef.current || !isClient) return;
 
-        const grid = gridRef.current;
+    const grid = gridInstanceRef.current;
+    const prevNotes = prevNotesRef.current;
 
-        // Clear existing widgets and editor references
-        grid.removeAll();
-        editorRootsRef.current = {};
-
-        // Clear any pending timers
-        Object.values(blurTimersRef.current).forEach(timer => clearTimeout(timer));
-        blurTimersRef.current = {};
-
-        // Add new widgets
-        editableNotes.forEach((note) => {
-            const widget = document.createElement('div');
-            widget.className = 'grid-stack-item-content';
-
-            // Create header
-            const header = document.createElement('div');
-            header.className = 'card-header';
-            header.textContent = note.title || '';
-
-            // Create content container for MDEditor
-            const contentContainer = document.createElement('div');
-            contentContainer.className = 'card-content';
-
-            widget.appendChild(header);
-            widget.appendChild(contentContainer);
-
-            // Render MDEditor using ReactDOM
-            if (note.content !== null) {
-                const root = createRoot(contentContainer);
-                editorRootsRef.current[note.id] = root;
-
-                const currentValue = tempValues[note.id] ?? (note.content || '');
-                root.render(
-                    <MDEditor
-                        value={currentValue}
-                        onChange={(value) => handleContentChange(note.id, value || '')}
-                        onBlur={() => handleContentBlur(note.id)}
-                        onFocus={() => handleContentFocus(note.id)}
-                        preview="edit"
-                        hideToolbar={false}
-                    />
-                );
-            }
-
-            grid.makeWidget(widget);
-        });
-
-        // Cleanup function
-        return () => {
-            if (gridRef.current) {
-                gridRef.current.removeAll();
-            }
-        };
-    }, [editableNotes]);
-
-    // Update individual editors when temp values change
-    useEffect(() => {
-        Object.keys(tempValues).forEach(noteIdStr => {
-            const noteId = parseInt(noteIdStr);
-            const editorRoot = editorRootsRef.current[noteId];
-            const note = editableNotes.find(n => n.id === noteId);
-
-            if (editorRoot && note) {
-                const currentValue = tempValues[noteId] ?? (note.content || '');
-                editorRoot.render(
-                    <MDEditor
-                        value={currentValue}
-                        onChange={(value) => handleContentChange(noteId, value || '')}
-                        onBlur={() => handleContentBlur(noteId)}
-                        onFocus={() => handleContentFocus(noteId)}
-                        preview="edit"
-                        hideToolbar={false}
-                    />
-                );
-            }
-        });
-    }, [tempValues]);
-
-    return (
-        <div className="App">
-            <div className="grid-stack">
-            </div>
-        </div>
+    // Find new notes
+    const newNotes = notes.filter(note =>
+      !prevNotes.some(prevNote => prevNote.id === note.id)
     );
+
+    // Find deleted notes
+    const deletedNoteIds = prevNotes
+      .filter(prevNote => !notes.some(note => note.id === prevNote.id))
+      .map(note => note.id);
+
+    // Remove deleted items from grid
+    deletedNoteIds.forEach(noteId => {
+      const element = gridRef.current?.querySelector(`[data-note-id="${noteId}"]`);
+      if (element) {
+        grid.removeWidget(element as HTMLElement);
+      }
+    });
+
+    // Add new items to grid
+    newNotes.forEach(note => {
+      const element = gridRef.current?.querySelector(`[data-note-id="${note.id}"]`);
+      if (element) {
+        grid.makeWidget(element as HTMLElement);
+      }
+    });
+
+    prevNotesRef.current = notes;
+  }, [notes, isClient]);
+
+  if (!isClient) {
+    return (
+      <div className="notes-grid-loading">
+        <p>Loading notes...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="notes-grid-container">
+      <div ref={gridRef} className="grid-stack">
+        {notes.map((note) => (
+          <div
+            key={note.id}
+            className="grid-stack-item"
+            data-note-id={note.id}
+            gs-x={note.gridX ?? 0}
+            gs-y={note.gridY ?? 0}
+            gs-w={note.gridW ?? 2}
+            gs-h={note.gridH ?? 2}
+          >
+            <div className="grid-stack-item-content note-card border border-white">
+              <div className="note-header">
+              <h3 className="note-title">{note.title || "Untitled"}</h3>
+              <button
+                onClick={() => onDelete(note.id)}
+                className="delete-button"
+                type="button"
+              >
+                ×
+              </button>
+              </div>
+              <div className="note-content">
+              <p>{note.content}</p>
+              </div>
+              <div className="note-footer">
+              <small>Created: {note.created_at}</small>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+    </div>
+  );
 }
