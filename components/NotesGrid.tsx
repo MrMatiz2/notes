@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GridStack } from "gridstack";
 import "gridstack/dist/gridstack.min.css";
-import { updateNotePosition } from "@/app/lib/notes-actions";
+import { updateNotePosition, updateNote } from "@/app/lib/notes-actions";
 
 interface Note {
   id: number;
@@ -28,6 +28,8 @@ export default function NotesGrid({ notes, onDelete }: NotesGridProps) {
   const gridInstanceRef = useRef<GridStack | null>(null);
   const [isClient, setIsClient] = useState(false);
   const prevNotesRef = useRef<Note[]>([]);
+  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
+  const [editContent, setEditContent] = useState<string>("");
 
   useEffect(() => {
     setIsClient(true);
@@ -107,6 +109,22 @@ export default function NotesGrid({ notes, onDelete }: NotesGridProps) {
     prevNotesRef.current = notes;
   }, [notes, isClient]);
 
+  const handleEditClick = (note: Note) => {
+    setEditingNoteId(note.id);
+    setEditContent(note.content || "");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingNoteId(null);
+    setEditContent("");
+  };
+
+  const handleSaveEdit = async (noteId: number) => {
+    await updateNote(noteId, editContent);
+    setEditingNoteId(null);
+    setEditContent("");
+  };
+
   if (!isClient) {
     return (
       <div className="notes-grid-loading">
@@ -130,21 +148,60 @@ export default function NotesGrid({ notes, onDelete }: NotesGridProps) {
           >
             <div className="grid-stack-item-content note-card border border-white">
               <div className="note-header">
-              <h3 className="note-title">{note.title || "Untitled"}</h3>
-              <button
-                onClick={() => onDelete(note.id)}
-                className="delete-button"
-                type="button"
-              >
-                ×
-              </button>
+                <h3 className="note-title">{note.title || "Untitled"}</h3>
+                <div>
+                  {editingNoteId !== note.id && (
+                    <button
+                      onClick={() => handleEditClick(note)}
+                      className="edit-button"
+                      type="button"
+                    >
+                      ✎
+                    </button>
+                  )}
+                  <button
+                    onClick={() => onDelete(note.id)}
+                    className="delete-button"
+                    type="button"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
               <div className="note-content">
-              <p>{note.content}</p>
+                {editingNoteId === note.id ? (
+                  <textarea
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    className="edit-textarea"
+                    rows={4}
+                  />
+                ) : (
+                  <p>{note.content}</p>
+                )}
               </div>
-              <div className="note-footer">
-              <small>Created: {note.created_at}</small>
-              </div>
+              {editingNoteId === note.id ? (
+                <div className="note-actions">
+                  <button
+                    onClick={() => handleSaveEdit(note.id)}
+                    className="save-button"
+                    type="button"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="cancel-button"
+                    type="button"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div className="note-footer">
+                  <small>Created: {note.created_at}</small>
+                </div>
+              )}
             </div>
           </div>
         ))}
