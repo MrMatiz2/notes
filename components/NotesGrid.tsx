@@ -41,11 +41,9 @@ export default function NotesGrid({ notes, onDelete }: NotesGridProps) {
 
     const grid = GridStack.init({
       cellHeight: 100,
-      margin: 10,
-      float: true,
       acceptWidgets: true,
       resizable: {
-        handles: "se, sw"
+        handles: "se"
       },
       draggable: {
         handle: ".note-header"
@@ -61,7 +59,7 @@ export default function NotesGrid({ notes, onDelete }: NotesGridProps) {
       items.forEach((item) => {
         const noteId = parseInt(item.el?.getAttribute("data-note-id") || "0");
         if (noteId && item.x !== undefined && item.y !== undefined && item.w !== undefined && item.h !== undefined) {
-          //updateNotePosition(noteId, item.x, item.y, item.w, item.h);
+          updateNotePosition(noteId, item.x, item.y, item.w, item.h);
         }
       });
     });
@@ -146,7 +144,7 @@ export default function NotesGrid({ notes, onDelete }: NotesGridProps) {
             gs-w={note.gridW ?? 2}
             gs-h={note.gridH ?? 2}
           >
-            <div className="grid-stack-item-content bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col h-full">
+            <div className="grid-stack-item-content bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
               <div className="note-header bg-gray-50 dark:bg-gray-700 px-4 py-3 border-b border-gray-200 dark:border-gray-600 flex items-center justify-between cursor-move">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
                   {note.title || "Untitled"}
@@ -177,7 +175,7 @@ export default function NotesGrid({ notes, onDelete }: NotesGridProps) {
                   <textarea
                     value={editContent}
                     onChange={(e) => setEditContent(e.target.value)}
-                    className="w-full h-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 resize-none"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 resize-none"
                     rows={4}
                   />
                 ) : (
