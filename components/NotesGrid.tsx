@@ -161,7 +161,11 @@ export default function NotesGrid({ notes, onDelete }: NotesGridProps) {
                     </button>
                   )}
                   <button
-                    onClick={() => onDelete(note.id)}
+                    onClick={() => {
+                      if (window.confirm(`Are you sure you want to delete "${note.title || 'Untitled'}"?`)) {
+                        onDelete(note.id);
+                      }
+                    }}
                     className="p-1 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors text-xl leading-none"
                     type="button"
                     title="Delete note"
