@@ -33,3 +33,8 @@ export async function deleteNote(noteId: number) {
   await db.delete(note).where(eq(note.id, noteId));
   revalidatePath("/dashboard");
 }
+
+export async function toggleNoteBlur(noteId: number, blurred: boolean) {
+  await db.update(note).set({ blurred }).where(eq(note.id, noteId));
+  revalidatePath("/dashboard");
+}

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GridStack } from "gridstack";
 import "gridstack/dist/gridstack.min.css";
-import { updateNotePosition, updateNote } from "@/app/lib/notes-actions";
+import { updateNotePosition, updateNote, toggleNoteBlur } from "@/app/lib/notes-actions";
 
 interface Note {
   id: number;
@@ -14,6 +14,7 @@ interface Note {
   gridY: number | null;
   gridW: number | null;
   gridH: number | null;
+  blurred: boolean | null;
   updated_at: string | null;
   created_at: string | null;
 }
@@ -123,6 +124,10 @@ export default function NotesGrid({ notes, onDelete }: NotesGridProps) {
     setEditContent("");
   };
 
+  const handleToggleBlur = async (note: Note) => {
+    await toggleNoteBlur(note.id, !note.blurred);
+  };
+
   if (!isClient) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -146,19 +151,29 @@ export default function NotesGrid({ notes, onDelete }: NotesGridProps) {
           >
             <div className="grid-stack-item-content bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
               <div className="note-header bg-gray-50 dark:bg-gray-700 px-4 py-3 border-b border-gray-200 dark:border-gray-600 flex items-center justify-between cursor-move">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
+                <h3 className={`text-lg font-semibold text-gray-900 dark:text-white truncate ${note.blurred ? 'filter blur-md select-none' : ''}`}>
                   {note.title || "Untitled"}
                 </h3>
                 <div className="flex items-center gap-2">
                   {editingNoteId !== note.id && (
-                    <button
-                      onClick={() => handleEditClick(note)}
-                      className="p-1 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
-                      type="button"
-                      title="Edit note"
-                    >
-                      ✎
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handleToggleBlur(note)}
+                        className="p-1 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                        type="button"
+                        title={note.blurred ? "Unblur note" : "Blur note"}
+                      >
+                        {note.blurred ? "👁️" : "👁️‍🗨️"}
+                      </button>
+                      <button
+                        onClick={() => handleEditClick(note)}
+                        className="p-1 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                        type="button"
+                        title="Edit note"
+                      >
+                        ✎
+                      </button>
+                    </>
                   )}
                   <button
                     onClick={() => onDelete(note.id)}
@@ -179,7 +194,7 @@ export default function NotesGrid({ notes, onDelete }: NotesGridProps) {
                     rows={4}
                   />
                 ) : (
-                  <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
+                  <p className={`text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words ${note.blurred ? 'filter blur-md select-none' : ''}`}>
                     {note.content}
                   </p>
                 )}
