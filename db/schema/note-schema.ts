@@ -11,6 +11,7 @@ export const note = sqliteTable("note", {
     gridY: integer("grid_y").default(0),
     gridW: integer("grid_w").default(2),
     gridH: integer("grid_h").default(2),
+    blurred: integer("blurred", { mode: "boolean" }).default(false),
     updated_at: text().default(sql`(CURRENT_TIME)`),
     created_at: text().default(sql`(CURRENT_DATE)`)
 });
